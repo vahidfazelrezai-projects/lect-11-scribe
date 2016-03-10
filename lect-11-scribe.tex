@@ -49,13 +49,102 @@
 
 \section{Using single-bit encryption for arbitrary length encryption}
 
-\section{Homomorphic encryption and some primitives}
+\section{Homomorphic encryption}
+
+\begin{definition}An encryption scheme is \textbf{homomorphic} if computations on the ciphertexts are reflected as computations on the messages when decrypted.\end{definition}
+
+Symbollically, given an encryption function $E$ and messages $m_1$ and $m_2$, this means
+\begin{align*}
+E(m_1) \circ E(m_2) &= E(m_1 \diamond m_2).
+\end{align*}
+Note that the operation on the cyphertexts and the messages can be different operations. Example applications of homomorphic encryption schemes:
+\begin{itemize}
+	\item E-voting: all votes could be encrypted and include a 0 or 1 indicating the vote. The ciphertexts of the votes could be added and then decrypted, yielding the vote count without revealing individual votes.
+	\item Secure cloud computing: data could be encrypted and have ciphertexts operated on (both $+$ and $\times$) without revealing the data itself. The result would then be decrypted and used.
+\end{itemize}
+Specifically with the quadratic residuosity encryption scheme, we have the following homomorphic properties:
+\begin{itemize}
+	\item $E(m_1 \oplus m_2) = E(m_1) \cdot E(m_2)$ (can be checked with truth table)
+	\item $E(1 \oplus m) = E(1) - E(m)$
+	\item $E(m) = E(0) \cdot E(b)$ (effectively re-randomizing)
+\end{itemize}
+
+
+
+
 
 \section{Probabilistic encryption scheme and examples}
 
+\subsection{Main Idea}
 
+Given a trapdoor permutation collection $F$, we define an encryption scheme as follows:
+\begin{itemize}
+	\item The key generation function $\gen(1^k)$ simply chooses a $f\in F$ and its corresponding trapdoor $t$, and outputs $(f, t)$.
+	\item The encryption function $\enc(f, m)$ chooses a seed $r$ in the domain of $f$ and a PSRG $g$ based on $f$. It returns $c = (c_1, c_2) = (g(r)\oplus m, f^{|m|+1}(r))$.
+	\item The decryption function $\dec(t, (c_1, c_2))$ has access to the trapdoor. It first finds $r = f^{-(|m|+1)}(c_2)$ (by inverting over and over) then returns $m=c_1 \oplus g(r)$.
+\end{itemize}
+The security of this scheme follows from the assumption of a PSRG.
 
+\subsection{Example: RSA}
 
+The probabilistic approach can be applied to RSA as follows:
+\begin{itemize}
+	\item $\gen(1^k)$ is defined as choosing $(n,e)$ just as in RSA.
+	\item $\enc(n,m)$ is defined by choosing $r \in Z_n^{*}$ and concatenating $|m|$ bits computed by
+	\begin{align*}
+	\text{pad} &= \text{lsb}(r \text{ mod } n) \quad \text{lsb}(r^e \text{ mod } n) \quad  \text{lsb}(r^{e^2} \text{ mod } n) \quad  \cdots \quad  \text{lsb}(r^{e^{|m|-1}} \text{ mod } n).
+	\end{align*}
+	We then set $c=( \text{pad} \oplus m, r^{|m|})$.
+	\item $\dec((p,q),(c_1, c_2))$ decrypts by finding $r$ as the $|c_1|$th root of $c_2$ modulo $n$ (using the factorization $n=pq$). Then, it can recompute $\text{pad}$ as above and find $m = c_1 \oplus \text{pad}$.
+\end{itemize}
+
+\subsection{Example: El Gamal}
+
+The El Gamal Cryptosystem is based on the discrete log problem and takes advantage of probabilistic encryption, defined as follows:
+\begin{itemize}
+	\item $\gen(1^k)$ chooses a random $k$-bit prime $p$ such that $p=2q+1$, where $q$ is also prime. Let $g$ be a generator of $QR_p$, $x$ be a number with $1 < x < q$, and $y = g^x \mod p$. Publish $(p,g,y)$ as the public key and keep the $x$ that was used secret.
+	\item $\enc((p,g,y),m)$ (where $m \in QR_p$) is defined by choosing randomly $1 \le r \le q$, computing $\text{pad} = y^r = g^{xr} \mod p$, and yielding $c = (\text{pad} \cdot m \mod p, g^{r})$.
+	\item $\dec(x,(c_1, c_2))$ is able to decrypt the cipher by recomputing the pad as $\text{pad} = c_2^x = g^{rx} \mod p$ and finding $m = c_1 \cdot \text{pad}^{-1} \mod P$. by finding $r$ as the $|c_1|$th root of $c_2$ modulo $n$ (using the factorization $n=pq$). Then, it can recompute $\text{pad}$ as above and find $m = c_1 \oplus \text{pad}$.
+\end{itemize}
+Note that $g$ and $p$ can be shared across all the users as long as $x$ and therefore $y$ are chosen differently for each key generation. 
+
+This scheme has, for message size $|m| = k$, public key of size $O(k)$, bandwidth of $O(k)$, and both encryption and decryption running time of $O(k^3)$. We also have security:
+\begin{theorem}
+Under DDH, El Gamal is computationally indistinguishable.
+\end{theorem}
+
+El Gamal also has multiplicative homomorphism. That is, if $\enc(m) = (c_1, c_2)$ and $\enc(m') = (c_1', c_2')$, we have $\enc(m \cdot m') = (c_1c_1' \mod p, c_2c_2' \mod p)$. 
+
+Furthermore, we can modify the scheme to also have additive homomorphism as follows. In encrypting, instead of returning $c_1 = \text{pad} \cdot m \mod p$, we set $c_1 = \text{pad} \cdot g^m \mod p$. With this modification, multiplying $g^m \cdot g^{m'} = g^{m+m'}$ effectively adds $m+m'$. To decrypt, as long as $m$ is a member of a polynomial size known set, can try all possibilities for $g^m$ and choose the one that matches.
+
+\subsection{Example: Paillier}
+
+Another example of an encryption scheme that uses randomness is as follows:
+
+\begin{itemize}
+	\item $\gen(1^k)$ chooses a $n=pq$, where $p$ and $q$ are primes. It publishes $n$ and keeps $\phi(n)$ secret.
+	\item $\enc(n,m)$ (assuimg $m \in Z_n^*$) chooses a random $r \in Z_n^*$ and computes
+	\begin{align*}
+	c &= (1+n)^mr^n \mod n^2.
+	\end{align*}
+	\item $\dec((p,q),c)$ first computes
+	\begin{align*}
+	c' &= c^{\phi(n)} \mod n^2 \\
+	&= (1+n)^{m \phi(n)} r^{n \phi(n)} \mod n^2 \\
+	&= (1+n)^{m \phi(n)} \mod n^2 \\
+	&= 1+nm \phi(n) \mod n^2,
+	\end{align*}
+	from which we can find $m = \frac{c'-1}{n \phi n}$.
+\end{itemize}
+Note that the last step of decryption follows from the fact $(1+n)^t = 1 + tn + n^2 ( \cdots ) = 1+tn \mod n^2$ for any $t$.
+
+The Paillier encryption scheme is used in applications such as auctions and voting due to its homomorphic properties: if $\enc(n, m) = c$ and $\enc(n, m') = c'$, then $\enc(n, m+m' \mod n) = c \cdot c'$ and $\enc(n, m-m' \mod n) = c / c'$.
+
+The security of the scheme is guaranteed under the Decisional Composite Residuosity (DCR) assumption. 
+\begin{definition}
+	The Decisional Composite Residuosity (DCR) assumption states that it is hard to distinguish between $(n, R^n)$ and $(n, S)$ for random $R \in Z_n$ and $S \in Z_{n^2}$.
+\end{definition}
+\noindent With DCR, Paillier is computationally indistinguishable against a passive adversary.
 
 % % % You should probably leave the below alone % % %
 \nocite{*}
