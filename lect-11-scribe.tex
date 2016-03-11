@@ -27,9 +27,28 @@
 
 %%%% body goes in here %%%%
 
+Today's lecture focused on implementing \textit{public-key encryption}, especially RSA, and \textit{bit-by-bit encryption}. We also discussed techniques for implementing \textit{homomorphic encryption}, which enables some computation to be performed on encrypted data. 
+
 \section{RSA preprocessing}
 
-\section{Random Oracle Model Methodology}
+RSA has many nice properties. For example, every bit of the input is a hard-core bit for the trapdoor function family. But last lecture we also observed some flaws in the plain vanilla RSA encryption scheme:
+\begin{itemize}
+  \item Revealed information: for example, the Jacobi symbol of the ciphertext is equal to the Jacobi symbol of the message
+  \item Determinism: RSA does not involve randomness, so a given message $m$ always encrypts to the same ciphertext $c$. This makes RSA insecure against chosen-ciphertext attacks
+\end{itemize}
+
+How can we fix these flaws? One approach is to nondeterministically preprocess the message before encrypting it with RSA. One scheme is Optimal Asymmetric Encryption Padding (OAEP) [BR94]:
+
+\begin{figure}['h']
+\includegraphics{oaep}
+\caption{The OAEP block diagram}
+\end{figure}
+
+Theorem: OAEP is \textit{semantically secure} when H, G are \textit{random oracles}. Semantic security means that no partial information (other than the length of the message) is revealed by the ciphertext. The security holds under chosen-plaintext attacks and, when OAEP is used with RSA, under chosen-ciphertext attacks (CCA1) also. 
+
+The padding bits $010\cdots 0$ make OAEP secure against 
+
+\section{Random Oracles in Theory and Practice}
 
 \section{Types of Attacks}
 
