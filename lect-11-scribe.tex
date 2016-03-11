@@ -46,19 +46,43 @@ How can we fix these flaws? One approach is to nondeterministically preprocess t
 
 Theorem: OAEP is \textit{semantically secure} when H, G are \textit{random oracles}. Semantic security means that no partial information (other than the length of the message) is revealed by the ciphertext. The security holds under chosen-plaintext attacks and, when OAEP is used with RSA, under chosen-ciphertext attacks (CCA1) also. 
 
-The padding bits $010\cdots 0$ make OAEP secure against 
-
 \section{Random Oracles in Theory and Practice}
 
-\section{Types of Attacks}
+Real random oracles don't exist. But the idea is nice: a random oracle $H$ produces outputs $H(x)$ that are truly random but consistent. That is, the oracle always answers any query the same way. We model a random oracle as a function chosen truly randomly from the set of all possible functions [CGH04], where ``possible functions'' are defined as mapping $\{0, 1\}^* \rightarrow \{0,1\}^l,$ where $l$ is the desired output length. 
 
+In practice, random oracles are often implemented using cryptographic hash functions such as SHA1. But systems whose cryptographic security proofs rely on the random oracle model are often not as secure when a hash function is used. Indeed, Canetti, Goldreigh, and Halevi exhibited a crypto-system proven secure under the random oracle model but insecure with any particular implementation of the oracle [CGH04]. 
+
+\section{Implementation Attacks on RSA}
+OAEP is important because of vanilla RSA's insecurities. These include both theoretical faults and side-channel attacks on actual software implementations of RSA. 
+
+Several theoretical ways exist to model an adversary. Adversaries may be passive eavesdroppers on the communications channel; they may be able to encrypt messages of their choice (always true in public-key cryptography), in a chosen-plaintext attack; or they may even be able to decrypt ciphertexts of their choice, in a chosen-ciphertext or lunchtime attack. 
+
+In a lunchtime (CCA1) attack, the adversary, Mallory, can request encryptions and decryptions of arbitrary strings (while Alice, the challenger goes to lunch and leaves her computer unattended). Mallory then chooses two messages; Alice selects one at random and encrypts it, and Mallory must say which it is. Because vanilla RSA (without OAEP) is deterministic, Mallory can recognize messages she has already seen, and therefore her task is easy. 
+
+We can formalize the chosen-ciphertext attack as
+\begin{align}
+  Pr \left[
+  \begin{array}{l}
+    K \leftarrow \textsf{Gen}(1^n) \\
+    (M_0, M_1, \textsf{state}) \leftarrow \mathcal A^{\textsf{Enc}_K(\cdot),\textsf{Dec}_K(\cdot)}(1^n) \\
+    B \sim \mathcal U(\{0,1\}) \\
+    C^* \leftarrow \textsf{Enc}(K,M_B) \\
+    B' \leftarrow \mathcal A^{\textsf{Enc}_K(\cdot)}(1^n,C^*,\textsf{state})
+  \end{array}
+  : B = B'
+  \right]
+  < \frac{1}{2} + negl(n).
+\end{align}.
+
+A number of attacks on RSA implementations also exist. These include:
 \begin{itemize}
-	\item Lunchtime attack
-	\item Timing attack
-	\item Power attack
-	\item Fault attack
-	\item Cache attack
+	\item Timing attacks, where the number of CPU cycles required to compute $c^d \pmod n$ reveals $d$
+	\item Power attacks, where CPU power consumption during computation of $c^d \pmod n$ reveals $d$
+	\item Fault attacks, where an error at a critical moment reveals $d$
+	\item Cache attacks, where patterns of CPU cache access reveal $d$
 \end{itemize}
+
+These are side-channel attacks, where information is revealed by a leaky implementation. Don't roll your own cryto!
 
 \section{Public key cryptography based on squaring}
 One other example of a public key cryptosystem, aside from RSA, is based on the squaring function.  More precisely, given a large number $ N $ that is the product of two primes that are each 3 (mod 4), it is hard to find the square root of a given perfect square. (Perfect squares are also called quadratic residues.)  However, it is easier to find such a root given the prime factors $ p $ and $ q $.  This allows us to create the following encryption scheme:
@@ -113,6 +137,56 @@ Now let's look at an example of a trapdoor predicate.  We'll use a scheme simila
 We can use the same algorithm as before to determine whether $ c $ is a quadratic residue or not, if we know $ p $ and $ q $: just try to take the square root and if there aren't any, it's not a perfect square.  But if we don't know $ p $ and $ q $, figuring out whether $ c $ is a quadratic residue or not is just as hard as actually finding the roots.  And earlier we realized that this is as hard as factoring $ N $, which is a very hard problem!
 
 \section{Using single-bit encryption for arbitrary length encryption}
+
+Now that we can encrypt single bits, can we encrypt a multibit message bit-by-bit and expect security? The answer is yes!
+
+Let $\Pi = (\textsf{Gen, Enc, Dec})$ be a semantically secure probabilistic encryption scheme for single bits. Then define \textit{probabilistic encryption} $PE_\Pi = (\textsf{G, E, D})$ as follows:
+
+\begin{itemize}
+  \item $G(1^k) = Gen(1^k)$
+  \item $E(pk, m = m_1 \cdots m_l) = Enc(pk, m_1) \cdots Enc(pk, m_l)$: bit-by-bit encryption
+  \item $D(sk, c = c_1 \cdots c_l) = Dec(sk, c_1) \cdots Dec(sk, c_l)$: bit-by-bit decryption
+\end{itemize}
+
+\begin{theorem}
+  If $\Pi = (\textsf{Gen, Enc, Dec})$ is semantically secure for single bits, then $PE_\Pi$ is semantically secure for messages of any length.
+\end{theorem}
+
+Proof: The proof is by hybridization. Suppose there existed a probabilistic polynomial time adversary algorithm $\mathcal A$ and a message space $\mathcal M$ with $l$ bit messages, such that over a random choice of two messages $m_0$ and $m_1$ from $\mathcal M$ and a random encryption of one of those messages $c$,
+\begin{align}
+  P[\mathcal A(e, m_0, m_1, c) = m] > \frac{1}{2} + \frac{1}{P(k)}
+\end{align}
+for infinitely many $k$ and some polynomial $P.$ (That is, the adversary can frequently guess with nonnegligible probability which of two messages has been encrypted.)
+
+Then we can use this adversary to decrypt, with non-negligible probability, single encrypted bits as follows. 
+
+The existence of $\mathcal A$ implies that for infinitely many message lengths $k$, $\mathcal A$ can distinguish between encrypted random $m_0^k, m_1^k \in \mathcal M$ with better than negligible probability over (a) choice of encryption keys and (b) the probabilistic ciphertexts $c_1 = E(e, m_1^k), c_2 = E(e, m_2^k)$.
+
+Now pick a $k$ such that $\mathcal A$ can distinguish messages generated from the space $\mathcal M(1^k)$ well:
+\begin{align}
+  P[A(e, c_0) = 1] - P[A(e, c_1) = 1] > \alpha \text{ over} \\
+  (e,d) \in G(1^k), \\
+  c_0 \in E(e, m_0^k), \\
+  c_1 \in E(e, m_1^k).
+\end{align}
+
+We are now ready to receive our encrypted bit $c,$ encrypted with public key $e$.
+\begin{enumerate}
+  \item Choose two messages, $m_0^k, m_1^k,$ of length $l,$ whose ciphertexts $\mathcal A$ can distinguish. Without loss of generality, assume that $A$ outputs $1$ more often on message $m_1^k$ than on $m_0^k.$
+  \item Construct a series of hybrid messages $s_i$, where $s_i$ consists of the first $i$ bits of $m_0^k$ and the last $l - i$ bits of $m_1^k.$ We know that
+  \begin{align}
+    \sum_{i = 1}^l (P[A(e, Enc(e, s_{i+1}) = 1] - P[A(e, Enc(e, s_i)) = 1]) > \alpha
+  \end{align}
+  
+  Therefore, there must be some particular $i$ such that
+  \begin{align}
+    P[A(e, Enc(e, s_{i+1})) = 1] - P[A(e, Enc(e, s_i)) = 1] > \frac{\alpha}{l}
+  \end{align}
+  
+  Generate a ciphertext $(c_1, \cdots, c_l) = Enc(e, s_i)$ and stick our mystery encrypted bit $c$ in position $i$. Then compute $b = A(c_1, \cdots, c, \cdots, c_l)$ and output the $i$th bit of $m_1^k$ if $b = 1$ or the $i$th bit of $m_0^k$ if $b = 0.$
+\end{enumerate}
+
+If $\mathcal A$ exists, then the above algorithm decrypts single bits with nonnegligible probability, which contradicts our assumption that our single-bit probabilistic scheme achieved semantic security. Therefore, the multi-bit scheme is semantically secure also. 
 
 \section{Homomorphic encryption}
 
