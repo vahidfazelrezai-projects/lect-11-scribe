@@ -1,3 +1,32 @@
-\begin{thebibliography}{}
+\begin{thebibliography}{BRDS95}
+
+\bibitem[BG84]{BG}
+Michael Blum and Shafi Goldwasser.
+\newblock An efficient probabilistic public-key encryption scheme which hides
+  all partial information.
+\newblock {\em Advances in Cryptology - Crypto 84}, 196:289--302, 1984.
+
+\bibitem[BRDS95]{BRDS}
+M.~Bellare, P.~Rogaway, and A.~De~Santis.
+\newblock Optimal asymmetric encryption.
+\newblock Adv. Networking Lab., IBM Thomas J. Watson Res. Center, Yorktown
+  Heights, NY, USA, 1995.
+
+\bibitem[CGH04]{CGH}
+Ran Canetti, Oded Goldreich, and Shai Halevi.
+\newblock The random oracle methodology, revisited.
+\newblock {\em Journal of the ACM}, 51(4):0 -- 594, 2004.
+
+\bibitem[Cip03]{Cip}
+M.~Cipolla.
+\newblock Un metodo per la risoluzione della congruenza di secondo grado.
+\newblock {\em Rendiconto dell’Accademia Scienze Fisiche e Matematiche},
+  IX:154--163, 1903.
+
+\bibitem[ElG85]{ElGamal}
+Taher ElGamal.
+\newblock A public key cryptosystem and a signature scheme based on discrete
+  logarithms.
+\newblock {\em IEEE Transactions on Information Theory}, 1985.
 
 \end{thebibliography}
