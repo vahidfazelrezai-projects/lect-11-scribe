@@ -1,4 +1,4 @@
-\begin{thebibliography}{BRDS95}
+\begin{thebibliography}{CGH04}
 
 \bibitem[BG84]{BG}
 Michael Blum and Shafi Goldwasser.
@@ -6,11 +6,12 @@ Michael Blum and Shafi Goldwasser.
   all partial information.
 \newblock {\em Advances in Cryptology - Crypto 84}, 196:289--302, 1984.
 
-\bibitem[BRDS95]{BRDS}
-M.~Bellare, P.~Rogaway, and A.~De~Santis.
-\newblock Optimal asymmetric encryption.
-\newblock Adv. Networking Lab., IBM Thomas J. Watson Res. Center, Yorktown
-  Heights, NY, USA, 1995.
+\bibitem[BR95]{Bellare1995}
+Mihir Bellare and Phillip Rogaway.
+\newblock {\em Advances in Cryptology --- EUROCRYPT'94: Workshop on the Theory
+  and Application of Cryptographic Techniques Perugia, Italy, May 9--12, 1994
+  Proceedings}, chapter Optimal asymmetric encryption, pages 92--111.
+\newblock Springer Berlin Heidelberg, Berlin, Heidelberg, 1995.
 
 \bibitem[CGH04]{CGH}
 Ran Canetti, Oded Goldreich, and Shai Halevi.

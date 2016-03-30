@@ -37,27 +37,32 @@ RSA has many nice properties. For example, every bit of the input is a hard-core
   \item Determinism: RSA does not involve randomness, so a given message $m$ always encrypts to the same ciphertext $c$. This makes RSA insecure against chosen-ciphertext attacks
 \end{itemize}
 
-How can we fix these flaws? One approach is to nondeterministically preprocess the message before encrypting it with RSA. One scheme is Optimal Asymmetric Encryption Padding (OAEP) \cite{BRDS}:
+How can we fix these flaws? One approach is to nondeterministically preprocess the message and incorporate randomness before encrypting it with RSA. One scheme is Optimal Asymmetric Encryption Padding (OAEP) \cite{Bellare1995}:
 
 \begin{figure}['h']
+\begin{center}
 \includegraphics{oaep}
+\end{center}
 \caption{The OAEP block diagram}
 \end{figure}
 
-Theorem: OAEP is \textit{semantically secure} when H, G are \textit{random oracles}. Semantic security means that no partial information (other than the length of the message) is revealed by the ciphertext. The security holds under chosen-plaintext attacks and, when OAEP is used with RSA, under chosen-ciphertext attacks (CCA1) also. 
+RSA with OAEP is semantically secure when H, G are \textit{random oracles}. 
+
+Intuitively, semantic security means that no partial information (other than the length of the message) is revealed by the ciphertext. The security holds under chosen-plaintext attacks and, when OAEP is used with RSA, under chosen-ciphertext attacks (CCA1) also. In the proofs below, we use an equivalent formulation of semantic security called computational indistinguishability, where the attacker is allowed to pick her favorite two messages and told that the ciphertext is one of them encrypted. Despite that information, she still cannot distinguish which message the ciphertext decrypts to. 
 
 \section{Random Oracles in Theory and Practice}
 
-Real random oracles don't exist. But the idea is nice: a random oracle $H$ produces outputs $H(x)$ that are truly random but consistent. That is, the oracle always answers any query the same way. We model a random oracle as a function chosen truly randomly from the set of all possible functions \cite{CGH}, where ``possible functions'' are defined as mapping $\{0, 1\}^* \rightarrow \{0,1\}^l,$ where $l$ is the desired output length. 
+A random oracle $H$ on inputs $x$ produces outputs $H(x)$ that are truly random but consistent. That is, if queried multiple times with the same input $x,$ the oracle always produces the same output. We model a random oracle as a function chosen truly randomly from the set of all possible functions mapping $\{0, 1\}^* \rightarrow \{0,1\}^l,$ where $l$ is the desired output length. 
 
 In practice, random oracles are often implemented using cryptographic hash functions such as SHA1. But systems whose cryptographic security proofs rely on the random oracle model are often not as secure when a hash function is used. Indeed, Canetti, Goldreigh, and Halevi exhibited a crypto-system proven secure under the random oracle model but insecure with any particular implementation of the oracle \cite{CGH}. 
 
 \section{Implementation Attacks on RSA}
-OAEP is important because of vanilla RSA's insecurities. These include both theoretical faults and side-channel attacks on actual software implementations of RSA. 
+OAEP is important because of vanilla RSA's insecurities. These include both theoretical vulnerabilities and side-channel attacks on actual software implementations of RSA. 
 
-Several theoretical ways exist to model an adversary. Adversaries may be passive eavesdroppers on the communications channel; they may be able to encrypt messages of their choice (always true in public-key cryptography), in a chosen-plaintext attack; or they may even be able to decrypt ciphertexts of their choice, in a chosen-ciphertext or lunchtime attack. 
+%Several theoretical ways exist to model an adversary. Adversaries may be passive eavesdroppers on the communications channel; they may be able to encrypt messages of their choice (always true in public-key cryptography), in a chosen-plaintext attack; or they may even be able to decrypt ciphertexts of their choice, in a chosen-ciphertext or lunchtime attack. 
 
-In a lunchtime (CCA1) attack, the adversary, Mallory, can request encryptions and decryptions of arbitrary strings (while Alice, the challenger goes to lunch and leaves her computer unattended). Mallory then chooses two messages; Alice selects one at random and encrypts it, and Mallory must say which it is. Because vanilla RSA (without OAEP) is deterministic, Mallory can recognize messages she has already seen, and therefore her task is easy. 
+Because vanilla RSA (without OAEP) is deterministic, it is insecure against adversaries who can obtain encryptions of arbitrary messages (i.e. CPA and CCA adversaries).\footnote{
+In a lunchtime (CCA1) attack, the adversary, Mallory, can request encryptions and decryptions of arbitrary strings (while Alice, the challenger goes to lunch and leaves her computer unattended). Mallory then chooses two messages; Alice selects one at random and encrypts it, and Mallory must say which it is. A chosen-plaintext attack is more limited: Mallory can request encryptions of arbitrary messages, but she cannot decrypt arbitrary messages. 
 
 We can formalize the chosen-ciphertext attack as
 \begin{align}
@@ -72,7 +77,7 @@ We can formalize the chosen-ciphertext attack as
   : B = B'
   \right]
   < \frac{1}{2} + negl(n).
-\end{align}.
+\end{align}.}
 
 A number of attacks on RSA implementations also exist. These include:
 \begin{itemize}
@@ -82,7 +87,7 @@ A number of attacks on RSA implementations also exist. These include:
 	\item Cache attacks, where patterns of CPU cache access reveal $d$
 \end{itemize}
 
-These are side-channel attacks, where information is revealed by a leaky implementation. Don't roll your own cryto!
+These are side-channel attacks, where information is revealed by a leaky implementation. It's easy to accidentally make an insecure implementation, so don't roll your own cryptography!
 
 \section{Public key cryptography based on squaring}
 One other example of a public key cryptosystem, aside from RSA, is based on the squaring function.  More precisely, given a large number $ N $ that is the product of two primes that are each 3 (mod 4), it is believed to be hard to find the square root of a given perfect square. (Perfect squares are also called quadratic residues.)  However, it is easy to find such a root given the prime factors $ p $ and $ q $.  This allows us to create the following encryption scheme:
@@ -152,41 +157,43 @@ Let $\Pi = (\textsf{Gen, Enc, Dec})$ be a semantically secure probabilistic encr
   If $\Pi = (\textsf{Gen, Enc, Dec})$ is semantically secure for single bits, then $PE_\Pi$ is semantically secure for messages of any length.
 \end{theorem}
 
-Proof: The proof is by hybridization. Suppose there existed a probabilistic polynomial time adversary algorithm $\mathcal A$ and a message space $\mathcal M$ with $l$ bit messages, such that over a random choice of two messages $m_0$ and $m_1$ from $\mathcal M$ and a random encryption of one of those messages $c$,
+\begin{proof}
+The proof is by hybridization. Suppose there existed a probabilistic polynomial time adversary algorithm $\mathcal A$ over a message space $\mathcal M$ with $l$ bit messages, and a polynomial $P$. The adversary chooses two messages $m_0$ and $m_1$ on input $1^k$ from $\mathcal M.$ The challenger then chooses one of the two messages at random and encrypts it to ciphertext $c$. Suppose the adversary's performance is
 \begin{align}
-  P[\mathcal A(e, m_0, m_1, c) = m] > \frac{1}{2} + \frac{1}{P(k)}
+  P[\mathcal A(pk, m_0, m_1, c) = m] > \frac{1}{2} + \frac{1}{P(k)}
 \end{align}
-for infinitely many $k$ and some polynomial $P.$ (That is, the adversary can frequently guess with nonnegligible probability which of two messages has been encrypted.)
+for infinitely many $k$. (That is, the adversary can frequently guess with nonnegligible probability which of two messages has been encrypted.)
 
-Then we can use this adversary to decrypt, with non-negligible probability, single encrypted bits as follows. 
+Then we can use $\mathcal A$ to construct a second adversary, $\mathcal B,$ to decrypt, with non-negligible probability, single encrypted bits, as follows. This violates the security guarantee of the single-bit scheme. 
 
-The existence of $\mathcal A$ implies that for infinitely many message lengths $k$, $\mathcal A$ can distinguish between encrypted random $m_0^k, m_1^k \in \mathcal M$ with better than negligible probability over (a) choice of encryption keys and (b) the probabilistic ciphertexts $c_1 = E(e, m_1^k), c_2 = E(e, m_2^k)$.
-
-Now pick a $k$ such that $\mathcal A$ can distinguish messages generated from the space $\mathcal M(1^k)$ well:
+The existence of $\mathcal A$ implies that for infinitely many values of the security parameter $k$, $\mathcal A$ can distinguish between encrypted $m_0^k, m_1^k \in \mathcal M$ with better than negligible probability over (a) the adversary's choice of $m_0^k, m_1^k$, (b) the choice of encryption keys and (c) the encryption randomness used to generate ciphertexts $c_1 = E(pk, m_1^k), c_2 = E(pk, m_2^k)$. Pick a $k$ such that $\mathcal A$ can distinguish messages generated from the space $\mathcal M(1^k)$ well:
 \begin{align}
-  P[A(e, c_0) = 1] - P[A(e, c_1) = 1] > \alpha \text{ over} \\
-  (e,d) \in G(1^k), \\
-  c_0 \in E(e, m_0^k), \\
-  c_1 \in E(e, m_1^k).
+  P[A(pk, c_0) = 1] - P[A(pk, c_1) = 1] > \alpha \text{ over} \\
+  (pk,sk) \in G(1^k), \\
+  c_0 \in E(pk, m_0^k), \\
+  c_1 \in E(pk, m_1^k).
 \end{align}
 
-We are now ready to receive our encrypted bit $c,$ encrypted with public key $e$.
+Now construct adversary $\mathcal B(pk, c)$ as follows:
 \begin{enumerate}
-  \item Choose two messages, $m_0^k, m_1^k,$ of length $l,$ whose ciphertexts $\mathcal A$ can distinguish. Without loss of generality, assume that $A$ outputs $1$ more often on message $m_1^k$ than on $m_0^k.$
+  \item Choose two messages, $m_0^k, m_1^k,$ of length $l,$ whose ciphertexts $\mathcal A$ can distinguish. Without loss of generality, assume that $A$ outputs $1$ with greater probability on message $m_1^k$ than on $m_0^k.$
   \item Construct a series of hybrid messages $s_i$, where $s_i$ consists of the first $i$ bits of $m_0^k$ and the last $l - i$ bits of $m_1^k.$ We know that
   \begin{align}
-    \sum_{i = 1}^l (P[A(e, Enc(e, s_{i+1}) = 1] - P[A(e, Enc(e, s_i)) = 1]) > \alpha
+    \sum_{i = 1}^l (P[A(pk, Enc(pk, s_{i+1}) = 1] - P[A(pk, Enc(pk, s_i)) = 1]) > \alpha
   \end{align}
   
   Therefore, there must be some particular $i$ such that
   \begin{align}
-    P[A(e, Enc(e, s_{i+1})) = 1] - P[A(e, Enc(e, s_i)) = 1] > \frac{\alpha}{l}
+    P[A(pk, Enc(pk, s_{i+1})) = 1] - P[A(e, Enc(pk, s_i)) = 1] > \frac{\alpha}{l}
   \end{align}
   
-  Generate a ciphertext $(c_1, \cdots, c_l) = Enc(e, s_i)$ and stick our mystery encrypted bit $c$ in position $i$. Then compute $b = A(c_1, \cdots, c, \cdots, c_l)$ and output the $i$th bit of $m_1^k$ if $b = 1$ or the $i$th bit of $m_0^k$ if $b = 0.$
+  Generate a ciphertext $(c_1, \cdots, c_l) = Enc(pk, s_i)$ and stick our challenge encrypted bit $c$ in position $i$. Then compute $b = A(c_1, \cdots, c, \cdots, c_l)$ and output the $i$th bit of $m_1^k$ if $b = 1$ or the $i$th bit of $m_0^k$ if $b = 0.$
 \end{enumerate}
 
 If $\mathcal A$ exists, then the above algorithm decrypts single bits with nonnegligible probability, which contradicts our assumption that our single-bit probabilistic scheme achieved semantic security. Therefore, the multi-bit scheme is semantically secure also. 
+\end{proof}
+
+
 
 \section{Homomorphic encryption}
 
